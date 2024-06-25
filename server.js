@@ -10,6 +10,8 @@ const app = express()
 const cors = require('cors')
 app.use(cors())
 
+const DropboxSign = require('@dropbox/sign')
+
 const bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
@@ -32,7 +34,21 @@ app.post('/sigReqEvents', upload.none(), (req, res, next) => {
 	// Further actions that can be taken based on event type
 	if(event.event.event_type === 'signature_request_downloadable') {
 		const sigReqId = event.signature_request.signature_request_id
-		console.log(sigReqId) 	
+		console.log(sigReqId)
+
+		// Save the file locally
+		const signatureRequestApi = new DropboxSign.SignatureRequestApi()
+		signatureRequestApi.username = process.env.API_KEY
+		const fileType = "pdf";
+
+		const result = signatureRequestApi.signatureRequestFiles(sigReqId, fileType);
+
+		result.then(response => {
+  		fs.createWriteStream(`./downloads/${sigReqId}.pdf`).write(response.body)
+		}).catch(error => {
+			console.log("Exception when calling Dropbox Sign API:")
+			console.log(error.body)
+		})
 	}
 })
 
