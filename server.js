@@ -30,18 +30,10 @@ app.post('/sigReqEvents', upload.none(), (req, res, next) => {
 	console.log(event.signature_request ? event.signature_request : event)
 
 	// Further actions that can be taken based on event type
-	// if(event.event.event_type === 'signature_request_downloadable') {
-	// 	const sigReqId = event.signature_request.signature_request_id
-	// 	console.log(sigReqId)
-	// 	hellosign.signatureRequest.download(sigReqId, { file_type: 'zip' },
-	// 		(err, res) => {
-	// 			const file = fs.createWriteStream(`./Signature Requests/${sigReqId}.zip`)
-	// 			res.pipe(file)
-	// 			file.on('finish', () => {
-	// 				file.close()
-	// 			})
- 	// 		})
-	// }
+	if(event.event.event_type === 'signature_request_downloadable') {
+		const sigReqId = event.signature_request.signature_request_id
+		console.log(sigReqId) 	
+	}
 })
 
 app.listen(PORT, () => {
