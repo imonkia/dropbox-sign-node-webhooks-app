@@ -16,9 +16,6 @@ app.use(bodyParser.json())
 
 const PORT = process.env.PORT || 8080
 
-app.use(express.static(path.join(__dirname, "..", "build")))
-app.use(express.static("public"))
-
 app.post('/sigReqEvents', upload.none(), (req, res, next) => {
 	// Message needed to respond to Dropbox Sign webhook requests
 	res.status(200).send('Hello API Event Received')
