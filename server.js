@@ -1,55 +1,88 @@
-require('dotenv').config()
-const express = require('express')
-const fs = require('fs')
-const multer = require('multer')
-const crypto = require('crypto')
+import 'dotenv/config'
+import express from 'express'
+import fs from 'fs'
+import multer from 'multer'
+import crypto from 'crypto'
+import * as DropboxSign from '@dropbox/sign'
+import cors from 'cors'
 
 const upload = multer()
 const app = express()
 
-const cors = require('cors')
 app.use(cors())
-
-const DropboxSign = require('@dropbox/sign')
-
-const bodyParser = require('body-parser')
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(express.json())
 
 const PORT = process.env.PORT || 8080
 
-app.post('/sigReqEvents', upload.none(), (req, res, next) => {
-	// Message needed to respond to Dropbox Sign webhook requests
-	res.status(200).send('Hello API Event Received')
-	console.log(req.body.json)
-	const event = JSON.parse(req.body.json)
+app.post('/sigReqEvents', upload.none(), (req, res) => {
+	// Validation of the event_hash using the SDK
+	const callbackData = JSON.parse(req.body.json)
+	
+	const callbackEvent = DropboxSign.EventCallbackRequest.init(callbackData)
 
-	// Validation of event_hash
-	const hash = crypto.createHmac('sha256', process.env.API_KEY).update(event.event.event_time + event.event.event_type).digest('hex').toString()
-	console.log(`Hash Key Check: ${hash}`)
-	console.log(`Hash from Event: ${event.event.event_hash}`)
-	console.log(event.event.event_type)
-	console.log(event.signature_request ? event.signature_request : event)
+	// Verify that callback came from HelloSign.com
+	if (DropboxSign.EventCallbackHelper.isValid(process.env.API_KEY, callbackEvent)) {
+		// Send back a successful response
+		res.status(200).send('Hello API Event Received')
+		
+		const eventType = callbackEvent.event.eventType
+		console.log(`Event Type: ${eventType}`)
+		
+		// Download the file if the event is signature_request_downloadable
+		if (eventType === 'signature_request_downloadable') {
+			const sigReqId = callbackEvent.signatureRequest.signatureRequestId
 
-	// Further actions that can be taken based on event type
-	if(event.event.event_type === 'signature_request_downloadable') {
-		const sigReqId = event.signature_request.signature_request_id
-		console.log(sigReqId)
+			const signatureRequestApi = new DropboxSign.SignatureRequestApi()
+			signatureRequestApi.username = process.env.API_KEY
+			const fileType = 'pdf'
 
-		// Save the file locally
-		const signatureRequestApi = new DropboxSign.SignatureRequestApi()
-		signatureRequestApi.username = process.env.API_KEY
-		const fileType = "pdf";
+			const result = signatureRequestApi.signatureRequestFiles(sigReqId, fileType)
 
-		const result = signatureRequestApi.signatureRequestFiles(sigReqId, fileType);
-
-		result.then(response => {
-  		fs.createWriteStream(`./downloads/${sigReqId}.pdf`).write(response.body)
-		}).catch(error => {
-			console.log("Exception when calling Dropbox Sign API:")
-			console.log(error.body)
-		})
+			result.then(response => {
+				fs.createWriteStream(`./downloads/${sigReqId}.pdf`).write(response.body)
+			}).catch(error => {
+				console.log("Exception when calling Dropbox Sign API:")
+				console.log(error.body)
+			})
+		}
+	} else {
+		res.status(401).send('Event hash validation failed.')
+		console.log('Event hash validation failed.')	
 	}
+
+	
+	// // Validation of event_hash not using the SDK
+	// const event = JSON.parse(req.body.json)
+	// const hash = crypto.createHmac('sha256', process.env.API_KEY).update(event.event.event_time + event.event.event_type).digest('hex').toString()
+	// if (hash === event.event.event_hash) {
+	// 	// Send back a successful response
+	// 	res.status(200).send('Hello API Event Received')
+
+	// 	const eventType = event.event.event_type
+	// 	console.log(`Event Type: ${eventType}`)
+
+	// 	if (event.event.event_type === 'signature_request_downloadable') {
+	// 		const sigReqId = event.signature_request.signature_request_id
+			
+	// 		// Save the file locally
+	// 		const signatureRequestApi = new DropboxSign.SignatureRequestApi()
+	// 		signatureRequestApi.username = process.env.API_KEY
+	// 		const fileType = "pdf";
+			
+	// 		const result = signatureRequestApi.signatureRequestFiles(sigReqId, fileType);
+			
+	// 		result.then(response => {
+	// 			fs.createWriteStream(`./downloads/${sigReqId}.pdf`).write(response.body)
+	// 		}).catch(error => {
+	// 			console.log("Exception when calling Dropbox Sign API:")
+	// 			console.log(error.body)
+	// 		})
+	// 	}
+	// } else {
+	// 	res.status(401).send('Event hash validation failed.')
+	// 	console.log('Event hash validation failed.')
+	// }
 })
 
 app.listen(PORT, () => {
