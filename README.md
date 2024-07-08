@@ -10,10 +10,10 @@ This app uses the official [Dropbox Sign Node SDK](https://github.com/hellosign/
 npm install
 ```
 
-### Set Up Environment Variables: 
+### Set up environment variables: 
 Create a new file named `.env` in the root of the project and add your Dropbox Sign `API_KEY`.
 
-### Start the app:
+### Start the server:
 ```
 npm start
 ```
