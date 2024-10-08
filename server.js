@@ -15,6 +15,10 @@ app.use(express.json())
 
 const PORT = process.env.PORT || 8080
 
+app.get('/', (req, res) => res.send('<h1>Dropbox Sign Webhooks Example</h1>'))
+
+app.get('/sigReqEvents', (req, res) => res.send('<h1>Dropbox Sign Webhooks Example</h1>'))
+
 app.post('/sigReqEvents', upload.none(), (req, res) => {
 	// Validation of the event_hash using the SDK
 	const callbackData = JSON.parse(req.body.json)
@@ -30,6 +34,7 @@ app.post('/sigReqEvents', upload.none(), (req, res) => {
 		console.log(`Event Type: ${eventType}`)
 		
 		// Download the file if the event is signature_request_downloadable
+		// Note: For a completed document, listen for signature_request_all_signed
 		if (eventType === 'signature_request_downloadable') {
 			const sigReqId = callbackEvent.signatureRequest.signatureRequestId
 
