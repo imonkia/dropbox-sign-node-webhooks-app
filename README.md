@@ -1,4 +1,4 @@
-# Dropbox Sign Node Webhook Server Example
+# Dropbox Sign Node Webhook Server
 This basic Express.js app listens for and validates Dropbox Sign webhooks.
 
 > [!NOTE]
